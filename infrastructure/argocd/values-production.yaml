@@ -1,0 +1,277 @@
+# Production values for Temporal Platform on ArgoCD
+# Override default values for production deployment
+
+# Global production configuration
+global:
+  imageRegistry: "docker.io"
+  storageClass: "fast-ssd"
+
+# Temporal server production settings
+temporal:
+  replicaCount: 3  # High availability
+  
+  config:
+    logLevel: "warn"  # Reduce log verbosity in production
+  
+  frontend:
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+  
+  history:
+    resources:
+      requests:
+        memory: "1Gi"  
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+  
+  matching:
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+  
+  worker:
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+# Temporal UI production settings
+temporalUI:
+  replicaCount: 2  # Load balanced
+  
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:region:account:certificate/cert-id"
+      service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: temporal-ui.yourdomain.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: temporal-ui-tls
+        hosts:
+          - temporal-ui.yourdomain.com
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "250m"
+
+# Application production settings
+application:
+  image:
+    tag: "v1.0.0"  # Pin to specific version in production
+    pullPolicy: IfNotPresent
+  
+  worker:
+    replicaCount: 5  # Scale for production load
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+  
+  api:
+    replicaCount: 3  # Load balanced API
+    service:
+      type: LoadBalancer
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    ingress:
+      enabled: true
+      className: "nginx"
+      annotations:
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/rate-limit: "100"
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      hosts:
+        - host: api.yourdomain.com
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: api-tls
+          hosts:
+            - api.yourdomain.com
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+  
+  config:
+    environment: "production"
+    debug: false
+    logLevel: "WARNING"
+
+# PostgreSQL production settings
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "CHANGE_ME_IN_PRODUCTION"  # Use sealed secrets
+    username: "temporal"
+    password: "CHANGE_ME_IN_PRODUCTION"  # Use sealed secrets
+    database: "temporal"
+  
+  architecture: standalone
+  
+  primary:
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "1000m"
+      limits:
+        memory: "4Gi"
+        cpu: "2000m"
+    
+    persistence:
+      enabled: true
+      size: "100Gi"
+      storageClass: "fast-ssd"
+    
+    configuration: |
+      max_connections = 200
+      shared_buffers = 512MB
+      effective_cache_size = 1GB
+      maintenance_work_mem = 128MB
+      checkpoint_completion_target = 0.9
+      wal_buffers = 16MB
+      default_statistics_target = 100
+      random_page_cost = 1.1
+      effective_io_concurrency = 200
+  
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+
+# Elasticsearch production settings  
+elasticsearch:
+  enabled: true
+  
+  clusterName: "temporal-cluster-prod"
+  nodeGroup: "master"
+  
+  replicas: 3  # High availability
+  minimumMasterNodes: 2
+  
+  esJavaOpts: "-Xmx2g -Xms2g"
+  
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "3Gi"
+    limits:
+      cpu: "2000m"
+      memory: "4Gi"
+  
+  volumeClaimTemplate:
+    accessModes: [ "ReadWriteOnce" ]
+    storageClassName: "fast-ssd"
+    resources:
+      requests:
+        storage: 100Gi
+  
+  esConfig:
+    elasticsearch.yml: |
+      cluster.name: "temporal-cluster-prod"
+      network.host: 0.0.0.0
+      discovery.seed_hosts: ["elasticsearch-master-headless"]
+      cluster.initial_master_nodes: ["elasticsearch-master-0","elasticsearch-master-1","elasticsearch-master-2"]
+      xpack.security.enabled: false
+      xpack.monitoring.collection.enabled: false
+      indices.query.bool.max_clause_count: 10000
+
+# Monitoring production settings
+monitoring:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      interval: 15s  # More frequent scraping in production
+      scrapeTimeout: 10s
+      labels:
+        release: prometheus
+  
+  grafana:
+    enabled: true
+    dashboards:
+      enabled: true
+      annotations:
+        grafana_folder: "Temporal Platform"
+
+# Security production settings
+security:
+  podSecurityPolicy:
+    enabled: true
+  
+  networkPolicy:
+    enabled: true
+
+# Resource management
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "10"
+    requests.memory: "20Gi"
+    limits.cpu: "20"
+    limits.memory: "40Gi"
+    persistentvolumeclaims: "10"
+  
+limitRange:
+  enabled: true
+  limits:
+    - default:
+        cpu: "500m"
+        memory: "1Gi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "256Mi"
+      type: Container
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # Ensure at least 2 replicas during updates
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 60  # More conservative in production
+  targetMemoryUtilizationPercentage: 70

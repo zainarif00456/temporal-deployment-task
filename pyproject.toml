@@ -1,0 +1,117 @@
+[tool.poetry]
+name = "temporal-platform"
+version = "1.0.0"
+description = "Production-grade Temporal platform deployment with comprehensive workflow patterns"
+authors = ["Infrastructure Engineer <engineer@stackai.com>"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+temporalio = "^1.6.0"
+pydantic = "^2.5.0"
+pydantic-settings = "^2.1.0"
+structlog = "^23.2.0"
+aiomqtt = "^2.0.0"
+aiofiles = "^23.2.1"
+psycopg2-binary = "^2.9.9"
+elasticsearch = "^8.11.0"
+prometheus-client = "^0.19.0"
+# opencensus-ext-prometheus = "^0.7.1"  # Disabled due to compatibility issues
+httpx = "^0.26.0"
+# uvloop = "^0.19.0"  # Disabled due to Python 3.13 compatibility issues
+rich = "^13.7.0"
+typer = "^0.9.0"
+sqlalchemy = "^2.0.25"
+alembic = "^1.13.1"
+redis = "^5.0.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.4"
+pytest-asyncio = "^0.23.2"
+pytest-cov = "^4.1.0"
+pytest-mock = "^3.12.0"
+black = "^23.12.1"
+isort = "^5.13.2"
+flake8 = "^7.0.0"
+mypy = "^1.8.0"
+bandit = "^1.7.5"
+safety = "^2.3.5"
+pre-commit = "^3.6.0"
+docker = "^7.0.0"
+
+[tool.poetry.scripts]
+temporal-worker = "src.temporal_platform.main:run_worker"
+temporal-orchestrator = "src.temporal_platform.main:run_orchestrator"
+temporal-client = "src.temporal_platform.main:run_client"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 88
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*", "*/venv/*", "*/.venv/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+]

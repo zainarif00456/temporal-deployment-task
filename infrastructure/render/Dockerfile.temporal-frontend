@@ -1,0 +1,26 @@
+# Temporal Frontend Service
+FROM temporalio/temporal:1.22.4
+
+# Set working directory
+WORKDIR /etc/temporal
+
+# Copy configuration files
+COPY temporal-config/ /etc/temporal/config/
+
+# Create necessary directories
+RUN mkdir -p /etc/temporal/config/dynamicconfig
+
+# Copy dynamic configuration
+COPY dynamicconfig/ /etc/temporal/config/dynamicconfig/
+
+# Expose frontend port
+EXPOSE 7233
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD temporal operator cluster health --address localhost:7233 || exit 1
+
+# Start frontend service
+CMD ["temporal-server", "start-frontend", \
+     "--config", "/etc/temporal/config/development-sql.yaml", \
+     "--env", "development"]

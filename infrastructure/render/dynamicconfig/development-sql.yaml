@@ -1,0 +1,71 @@
+# Dynamic Configuration for Temporal Server
+# These settings can be updated without restarting the server
+
+# Frontend service configuration
+frontend.enableUpdateWorkflowExecution: true
+frontend.enableUpdateWorkflowExecutionAsyncAccepted: true
+frontend.keepAliveMinTime: 30s
+frontend.keepAlivePermitWithoutStream: true
+frontend.disallowQuery: false
+frontend.emitSignalNameMetricsTag: true
+
+# History service configuration
+history.maxAutoResetPoints: 20
+history.defaultActivityRetryPolicy:
+  InitialInterval: 1s
+  MaximumInterval: 100s
+  BackoffCoefficient: 2.0
+  MaximumAttempts: 0
+
+history.defaultWorkflowRetryPolicy:
+  InitialInterval: 1s
+  MaximumInterval: 100s
+  BackoffCoefficient: 2.0
+  MaximumAttempts: 0
+
+# Matching service configuration  
+matching.numTaskqueueReadPartitions: 4
+matching.numTaskqueueWritePartitions: 4
+matching.forwarderMaxOutstandingPolls: 1
+matching.forwarderMaxOutstandingTasks: 1
+matching.forwarderMaxRatePerSecond: 10
+matching.forwarderMaxChildrenPerNode: 20
+
+# Worker service configuration
+worker.buildIdScavengerEnabled: true
+worker.batcherRPS: 50
+worker.scannerRPS: 20
+
+# System limits
+system.maxIDLength: 1000
+system.blob.size.limit.warn: 512000  # 500KB warning
+system.blob.size.limit.error: 2097152  # 2MB error
+system.searchAttributes.numberLimit: 100
+system.searchAttributes.sizeLimit: 40960  # 40KB
+system.searchAttributes.totalSizeLimit: 40960  # 40KB
+
+# Visibility settings
+visibility.searchAttributesNumberOfKeysLimit: 100
+visibility.searchAttributesTotalSizeLimit: 40960
+visibility.searchAttributesSizeOfValueLimit: 2048
+
+# Namespace settings
+system.maxBadBinaries: 10
+system.enableSchedules: true
+
+# Rate limiting
+frontend.namespaceReplicationInducingAPIsRPS: 20
+frontend.maxNamespaceRPSPerInstance: 1200
+frontend.maxNamespaceBurstPerInstance: 1200
+frontend.maxNamespaceCountPerInstance: 1200
+
+# ElasticSearch settings (when enabled)
+system.enableReadFromSecondaryVisibility: false
+system.secondaryVisibilityWritingMode: "off"
+system.advancedVisibilityWritingMode: "on"
+
+# Archival (disabled for development)
+system.enableArchival: false
+
+# Authorization (disabled for development)
+system.enableAuthorization: false

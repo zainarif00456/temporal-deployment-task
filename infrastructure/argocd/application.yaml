@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: temporal-platform
+  namespace: argocd
+  labels:
+    name: temporal-platform
+    environment: production
+spec:
+  project: default
+  
+  source:
+    repoURL: https://github.com/stackai/temporal-platform.git
+    targetRevision: HEAD
+    path: infrastructure/helm/temporal-platform
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-production.yaml
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: temporal-platform
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  
+  revisionHistoryLimit: 10
+  
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+    - group: ""
+      kind: Secret
+      jsonPointers:
+        - /data
+  
+  info:
+    - name: 'Description'
+      value: 'Production-grade Temporal Platform with comprehensive workflow orchestration'
+    - name: 'Owner'
+      value: 'StackAI Engineering Team'
+    - name: 'Documentation'
+      value: 'https://github.com/stackai/temporal-platform/blob/main/README.md'

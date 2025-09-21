@@ -1,0 +1,28 @@
+# Elasticsearch configuration for Temporal
+cluster.name: temporal-cluster
+node.name: temporal-elasticsearch
+
+# Network settings
+network.host: 0.0.0.0
+network.publish_host: _site_
+
+# Discovery settings for single-node deployment
+discovery.type: single-node
+
+# Disable X-Pack security for development
+xpack.security.enabled: false
+xpack.monitoring.collection.enabled: false
+
+# Memory lock settings
+bootstrap.memory_lock: true
+
+# Index settings for Temporal
+index.number_of_shards: 1
+index.number_of_replicas: 0
+
+# Path settings
+path.data: /usr/share/elasticsearch/data
+path.logs: /usr/share/elasticsearch/logs
+
+# Log settings
+logger.level: INFO

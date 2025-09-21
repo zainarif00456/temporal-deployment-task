@@ -1,0 +1,27 @@
+apiVersion: v2
+name: temporal-platform
+description: Production-grade Temporal Platform with comprehensive workflow orchestration
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - temporal
+  - workflow
+  - orchestration
+  - distributed-systems
+  - microservices
+home: https://github.com/stackai/temporal-platform
+sources:
+  - https://github.com/stackai/temporal-platform
+maintainers:
+  - name: StackAI Engineering
+    email: engineering@stackai.com
+dependencies:
+  - name: postgresql
+    version: "^12.0.0"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+  - name: elasticsearch
+    version: "^19.0.0"
+    repository: "https://helm.elastic.co"
+    condition: elasticsearch.enabled

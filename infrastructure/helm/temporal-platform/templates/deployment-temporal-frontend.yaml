@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "temporal-platform.fullname" . }}-frontend
+  labels:
+    {{- include "temporal-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: {{ .Values.temporal.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "temporal-platform.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        {{- include "temporal-platform.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+    spec:
+      containers:
+        - name: temporal-frontend
+          image: "{{ .Values.temporal.image.registry }}/{{ .Values.temporal.image.repository }}:{{ .Values.temporal.image.tag }}"
+          imagePullPolicy: {{ .Values.temporal.image.pullPolicy }}
+          command: ["temporal-server"]
+          args: 
+            - "start-frontend"
+            - "--config"
+            - "/etc/temporal/config/development-sql.yaml"
+            - "--env"
+            - "development"
+          ports:
+            - name: rpc
+              containerPort: 7233
+              protocol: TCP
+            - name: membership
+              containerPort: 6933
+              protocol: TCP
+          env:
+            - name: DB
+              value: "postgres12"
+            - name: POSTGRES_SEEDS
+              value: "{{ include "temporal-platform.fullname" . }}-postgresql"
+            - name: POSTGRES_USER
+              value: {{ .Values.postgresql.auth.username }}
+            - name: POSTGRES_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "temporal-platform.fullname" . }}-postgresql
+                  key: password
+            - name: ENABLE_ES
+              value: "true"
+            - name: ES_SEEDS
+              value: "{{ include "temporal-platform.fullname" . }}-elasticsearch-master"
+            - name: ES_VERSION
+              value: "v7"
+            - name: BIND_ON_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          livenessProbe:
+            exec:
+              command:
+                - temporal
+                - operator
+                - cluster
+                - health
+                - --address
+                - localhost:7233
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - temporal
+                - operator
+                - cluster
+                - health
+                - --address
+                - localhost:7233
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.temporal.frontend.resources | nindent 12 }}

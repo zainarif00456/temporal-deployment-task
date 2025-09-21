@@ -1,0 +1,18 @@
+# Temporal UI (Web Interface)
+FROM temporalio/ui:2.21.3
+
+# Set environment variables for UI
+ENV TEMPORAL_ADDRESS=frontend:7233
+ENV TEMPORAL_CORS_ORIGINS=*
+ENV TEMPORAL_PERMIT_WRITE_API=true
+ENV TEMPORAL_UI_PORT=8080
+
+# Expose UI port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/ || exit 1
+
+# Start UI service
+CMD ["./start-ui-server.sh"]

@@ -1,0 +1,102 @@
+# Temporal Server Configuration for Production Deployment
+log:
+  stdout: true
+  level: info
+
+persistence:
+  default:
+    driver: sql
+    sql:
+      driver: postgres
+      host: ${POSTGRES_SEEDS}
+      port: 5432
+      database: temporal
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PWD}
+      maxConns: 20
+      maxIdleConns: 20
+      maxConnLifetime: "1h"
+      connectAttributes:
+        application_name: temporal-server
+
+  visibility:
+    driver: elasticsearch
+    elasticsearch:
+      version: ${ES_VERSION}
+      url:
+        scheme: "http"
+        host: ${ES_SEEDS}:9200
+      indices:
+        visibility: temporal_visibility_v1_dev
+      logLevel: error
+
+global:
+  membership:
+    name: temporal
+    maxJoinDuration: 30s
+    broadcastAddress: ${BIND_ON_IP}
+
+  pprof:
+    port: 7936
+
+  metrics:
+    prometheus:
+      timerType: histogram
+      listenAddress: "0.0.0.0:9090"
+
+services:
+  frontend:
+    rpc:
+      grpcPort: 7233
+      membershipPort: 6933
+      bindOnLocalHost: false
+      bindOnIP: ${BIND_ON_IP}
+
+  matching:
+    rpc:
+      grpcPort: 7235
+      membershipPort: 6935
+      bindOnLocalHost: false
+      bindOnIP: ${BIND_ON_IP}
+
+  history:
+    rpc:
+      grpcPort: 7234
+      membershipPort: 6934
+      bindOnLocalHost: false
+      bindOnIP: ${BIND_ON_IP}
+
+  worker:
+    rpc:
+      grpcPort: 7239
+      membershipPort: 6939
+      bindOnLocalHost: false
+      bindOnIP: ${BIND_ON_IP}
+
+clusterMetadata:
+  enableGlobalNamespace: false
+  failoverVersionIncrement: 10
+  masterClusterName: "active"
+  currentClusterName: "active"
+  clusterInformation:
+    active:
+      enabled: true
+      initialFailoverVersion: 1
+      rpcName: "frontend"
+      rpcAddress: "frontend:7233"
+
+dcRedirectionPolicy:
+  policy: "noop"
+
+archival:
+  history:
+    state: "disabled"
+  visibility:
+    state: "disabled"
+
+publicClient:
+  hostPort: "frontend:7233"
+
+dynamicConfigClient:
+  filepath: "/etc/temporal/config/dynamicconfig"
+  pollInterval: "10s"

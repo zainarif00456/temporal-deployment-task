@@ -1,0 +1,99 @@
+{
+  "name": "Temporal Platform Development",
+  "dockerComposeFile": ["docker-compose.yml"],
+  "service": "temporal-platform-dev",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "version": "latest",
+      "helm": "latest",
+      "minikube": "latest"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "ms-python.isort",
+        "ms-python.mypy-type-checker",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "redhat.vscode-yaml",
+        "ms-vscode-remote.remote-containers",
+        "GitHub.copilot",
+        "GitHub.copilot-labs",
+        "ms-vscode.vscode-json",
+        "bradlc.vscode-tailwindcss"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+        "python.formatting.provider": "black",
+        "python.linting.enabled": true,
+        "python.linting.mypyEnabled": true,
+        "python.linting.flake8Enabled": true,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": true
+        }
+      }
+    }
+  },
+
+  "forwardPorts": [
+    7233,   // Temporal Frontend
+    8080,   // Temporal UI
+    9200,   // Elasticsearch
+    5432,   // PostgreSQL
+    8000,   // API Server
+    9090,   // Prometheus Metrics
+    8081    // Health Check
+  ],
+
+  "portsAttributes": {
+    "7233": {
+      "label": "Temporal Frontend",
+      "protocol": "tcp"
+    },
+    "8080": {
+      "label": "Temporal UI",
+      "protocol": "http",
+      "onAutoForward": "openBrowser"
+    },
+    "9200": {
+      "label": "Elasticsearch",
+      "protocol": "http"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "protocol": "tcp"
+    },
+    "8000": {
+      "label": "API Server",
+      "protocol": "http",
+      "onAutoForward": "openBrowser"
+    },
+    "9090": {
+      "label": "Prometheus Metrics",
+      "protocol": "http"
+    },
+    "8081": {
+      "label": "Health Check",
+      "protocol": "http"
+    }
+  },
+
+  "postCreateCommand": ".devcontainer/setup.sh",
+
+  "remoteUser": "vscode",
+
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ]
+}

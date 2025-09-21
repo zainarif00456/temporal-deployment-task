@@ -1,0 +1,31 @@
+# JVM options for Elasticsearch in production
+
+# Memory settings
+-Xms1g
+-Xmx1g
+
+# GC settings
+-XX:+UseG1GC
+-XX:MaxGCPauseMillis=200
+-XX:+UnlockExperimentalVMOptions
+-XX:+UseG1GC
+-XX:G1HeapRegionSize=16m
+-XX:+UnlockDiagnosticVMOptions
+-XX:+G1PrintRegionSetInfo
+
+# GC logging
+-Xlog:gc*:gc.log:time
+
+# Out of memory error handling
+-XX:+HeapDumpOnOutOfMemoryError
+-XX:HeapDumpPath=/tmp/
+
+# Security settings
+-Djava.security.policy=all.policy
+
+# File encoding
+-Dfile.encoding=UTF-8
+
+# Locale settings
+-Duser.country=US
+-Duser.language=en

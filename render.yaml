@@ -1,0 +1,318 @@
+# Render.com deployment configuration for Temporal Platform
+# Production-grade Temporal cluster with PostgreSQL, Elasticsearch, and all services
+
+databases:
+  - name: temporal-postgresql
+    databaseName: temporal
+    user: temporal
+    plan: standard # Production plan with connection pooling
+    region: oregon
+    version: "15"
+
+  - name: temporal-postgresql-visibility  
+    databaseName: temporal_visibility
+    user: temporal
+    plan: standard
+    region: oregon
+    version: "15"
+
+services:
+  # Elasticsearch for Temporal visibility and search
+  - type: web
+    name: elasticsearch
+    runtime: docker
+    plan: standard
+    region: oregon
+    dockerfilePath: ./infrastructure/render/Dockerfile.elasticsearch
+    dockerContext: ./infrastructure/render
+    disk:
+      name: elasticsearch-data
+      mountPath: /usr/share/elasticsearch/data
+      sizeGB: 20
+    envVars:
+      - key: discovery.type
+        value: single-node
+      - key: xpack.security.enabled
+        value: "false"
+      - key: cluster.name
+        value: temporal-cluster
+      - key: node.name
+        value: temporal-elasticsearch
+      - key: ES_JAVA_OPTS
+        value: "-Xms1g -Xmx1g"
+      - key: bootstrap.memory_lock
+        value: "true"
+    healthCheckPath: /_cluster/health
+
+  # Temporal Frontend Service
+  - type: web
+    name: temporal-frontend
+    runtime: docker
+    plan: standard
+    region: oregon
+    dockerfilePath: ./infrastructure/render/Dockerfile.temporal-frontend
+    dockerContext: ./infrastructure/render
+    envVarGroups:
+      - name: temporal-config
+    envVars:
+      - key: TEMPORAL_CLI_ADDRESS
+        value: temporal-frontend:7233
+      - key: DYNAMIC_CONFIG_FILE_PATH
+        value: /etc/temporal/config/dynamicconfig/development-sql.yaml
+      - key: ENABLE_ES
+        value: "true"
+      - key: ES_SEEDS
+        fromService:
+          type: web
+          name: elasticsearch
+          property: host
+      - key: ES_VERSION
+        value: "v7"
+      - key: POSTGRES_SEEDS
+        fromDatabase:
+          name: temporal-postgresql
+          property: host
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: temporal-postgresql
+          property: user
+      - key: POSTGRES_PWD
+        fromDatabase:
+          name: temporal-postgresql
+          property: password
+      - key: DB
+        value: postgres12
+    healthCheckPath: /
+
+  # Temporal History Service
+  - type: web
+    name: temporal-history
+    runtime: docker
+    plan: standard
+    region: oregon
+    dockerfilePath: ./infrastructure/render/Dockerfile.temporal-history
+    dockerContext: ./infrastructure/render
+    envVarGroups:
+      - name: temporal-config
+    envVars:
+      - key: TEMPORAL_CLI_ADDRESS
+        fromService:
+          type: web
+          name: temporal-frontend
+          property: host
+      - key: ENABLE_ES
+        value: "true"
+      - key: ES_SEEDS
+        fromService:
+          type: web
+          name: elasticsearch
+          property: host
+      - key: ES_VERSION
+        value: "v7"
+      - key: POSTGRES_SEEDS
+        fromDatabase:
+          name: temporal-postgresql
+          property: host
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: temporal-postgresql
+          property: user
+      - key: POSTGRES_PWD
+        fromDatabase:
+          name: temporal-postgresql
+          property: password
+      - key: DB
+        value: postgres12
+
+  # Temporal Matching Service
+  - type: web
+    name: temporal-matching
+    runtime: docker
+    plan: standard
+    region: oregon
+    dockerfilePath: ./infrastructure/render/Dockerfile.temporal-matching
+    dockerContext: ./infrastructure/render
+    envVarGroups:
+      - name: temporal-config
+    envVars:
+      - key: TEMPORAL_CLI_ADDRESS
+        fromService:
+          type: web
+          name: temporal-frontend
+          property: host
+      - key: POSTGRES_SEEDS
+        fromDatabase:
+          name: temporal-postgresql
+          property: host
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: temporal-postgresql
+          property: user
+      - key: POSTGRES_PWD
+        fromDatabase:
+          name: temporal-postgresql
+          property: password
+      - key: DB
+        value: postgres12
+
+  # Temporal Worker Service
+  - type: web
+    name: temporal-worker
+    runtime: docker
+    plan: standard
+    region: oregon
+    dockerfilePath: ./infrastructure/render/Dockerfile.temporal-worker
+    dockerContext: ./infrastructure/render
+    envVarGroups:
+      - name: temporal-config
+    envVars:
+      - key: TEMPORAL_CLI_ADDRESS
+        fromService:
+          type: web
+          name: temporal-frontend
+          property: host
+      - key: POSTGRES_SEEDS
+        fromDatabase:
+          name: temporal-postgresql
+          property: host
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: temporal-postgresql
+          property: user
+      - key: POSTGRES_PWD
+        fromDatabase:
+          name: temporal-postgresql
+          property: password
+      - key: DB
+        value: postgres12
+
+  # Temporal UI (Web Interface)
+  - type: web
+    name: temporal-ui
+    runtime: docker
+    plan: standard
+    region: oregon
+    dockerfilePath: ./infrastructure/render/Dockerfile.temporal-ui
+    dockerContext: ./infrastructure/render
+    envVars:
+      - key: TEMPORAL_ADDRESS
+        fromService:
+          type: web
+          name: temporal-frontend
+          property: host
+      - key: TEMPORAL_CORS_ORIGINS
+        value: "*"
+    healthCheckPath: /
+    
+  # Python Temporal Application
+  - type: web
+    name: temporal-platform-app
+    runtime: python3
+    plan: standard
+    region: oregon
+    buildCommand: poetry install --only main && poetry run python -m src.temporal_platform.main setup-db
+    startCommand: poetry run python -m src.temporal_platform.main start-worker
+    envVarGroups:
+      - name: temporal-config
+      - name: app-config
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: TEMPORAL_HOST
+        fromService:
+          type: web
+          name: temporal-frontend
+          property: host
+      - key: TEMPORAL_PORT
+        value: "7233"
+      - key: POSTGRESQL_HOST
+        fromDatabase:
+          name: temporal-postgresql-visibility
+          property: host
+      - key: POSTGRESQL_PORT
+        value: "5432"
+      - key: POSTGRESQL_DATABASE
+        fromDatabase:
+          name: temporal-postgresql-visibility
+          property: database
+      - key: POSTGRESQL_USER
+        fromDatabase:
+          name: temporal-postgresql-visibility
+          property: user
+      - key: POSTGRESQL_PASSWORD
+        fromDatabase:
+          name: temporal-postgresql-visibility
+          property: password
+      - key: ELASTICSEARCH_HOST
+        fromService:
+          type: web
+          name: elasticsearch
+          property: host
+      - key: ELASTICSEARCH_PORT
+        value: "9200"
+
+  # Application API Gateway
+  - type: web
+    name: temporal-platform-api
+    runtime: python3
+    plan: standard
+    region: oregon
+    buildCommand: poetry install --only main
+    startCommand: poetry run python -m src.temporal_platform.main start-api
+    envVarGroups:
+      - name: temporal-config
+      - name: app-config
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: TEMPORAL_HOST
+        fromService:
+          type: web
+          name: temporal-frontend
+          property: host
+      - key: API_PORT
+        value: "8000"
+    healthCheckPath: /health
+
+envVarGroups:
+  - name: temporal-config
+    envVars:
+      - key: TEMPORAL_NAMESPACE
+        value: default
+      - key: TEMPORAL_TASK_QUEUE
+        value: temporal-platform-task-queue
+      - key: MAX_CONCURRENT_WORKFLOWS
+        value: "1000"
+      - key: MAX_CONCURRENT_ACTIVITIES
+        value: "1000"
+      - key: WORKFLOW_EXECUTION_TIMEOUT_SECONDS
+        value: "3600"
+      - key: ACTIVITY_EXECUTION_TIMEOUT_SECONDS
+        value: "300"
+      - key: ACTIVITY_RETRY_MAXIMUM_ATTEMPTS
+        value: "5"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_FORMAT
+        value: json
+      
+  - name: app-config
+    envVars:
+      - key: ENABLE_METRICS
+        value: "true"
+      - key: METRICS_PORT
+        value: "9090"
+      - key: ENABLE_HEALTH_CHECKS
+        value: "true"
+      - key: HEALTH_CHECK_PORT
+        value: "8081"
+      - key: ENABLE_TLS
+        value: "false"
+      - key: HEARTBEAT_INTERVAL_SECONDS
+        value: "10"
+      - key: PROGRESS_UPDATE_INTERVAL_SECONDS
+        value: "5"
