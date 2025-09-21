@@ -7,7 +7,7 @@ import sys
 from typing import Optional, List
 import typer
 import structlog
-from temporalio import Worker
+from temporalio.worker import Worker
 from temporalio.client import Client
 from temporalio.runtime import PrometheusConfig, Runtime, TelemetryConfig
 

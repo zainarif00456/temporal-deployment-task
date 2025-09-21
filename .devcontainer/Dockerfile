@@ -32,9 +32,8 @@ RUN poetry config virtualenvs.create true \
 # Set working directory
 WORKDIR /workspace
 
-# Create vscode user
-RUN useradd -m -s /bin/bash vscode \
-    && usermod -aG sudo vscode \
+# Configure existing vscode user (already exists in base image)
+RUN usermod -aG sudo vscode \
     && echo "vscode ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 USER vscode

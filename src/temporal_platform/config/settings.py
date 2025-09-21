@@ -3,8 +3,8 @@ Production-grade configuration management using Pydantic v2.
 All configuration is environment variable based with proper validation.
 """
 from typing import List, Optional
-from pydantic import BaseSettings, Field, validator
-from pydantic_settings import BaseSettings as PydanticSettings
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 
 
 class DatabaseConfig(BaseSettings):
@@ -151,7 +151,7 @@ class MonitoringConfig(BaseSettings):
     health_check_port: int = Field(default=8081, env="HEALTH_CHECK_PORT")
 
 
-class Settings(PydanticSettings):
+class Settings(BaseSettings):
     """
     Main settings class that aggregates all configuration sections.
     Uses environment variables with proper validation and defaults.
@@ -175,7 +175,7 @@ class Settings(PydanticSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
-        extra = "forbid"
+        extra = "ignore"
     
     @validator("environment")
     def validate_environment(cls, v: str) -> str:
