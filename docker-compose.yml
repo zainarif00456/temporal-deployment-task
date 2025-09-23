@@ -49,15 +49,18 @@ services:
   temporal-server:
     image: temporalio/auto-setup:1.22.4
     environment:
-      - DB=postgres12
+      - DB=postgresql
+      - DB_PORT=5432
       - POSTGRES_SEEDS=postgres
       - POSTGRES_USER=temporal
       - POSTGRES_PWD=temporal
+      - POSTGRES_DB=temporal
       - ENABLE_ES=true
       - ES_SEEDS=elasticsearch
       - ES_VERSION=v7
-      - DYNAMIC_CONFIG_FILE_PATH=/etc/temporal/config/dynamicconfig/development-sql.yaml
+      - SKIP_SCHEMA_SETUP=false
       - BIND_ON_IP=0.0.0.0
+      - TEMPORAL_BROADCAST_ADDRESS=127.0.0.1
     ports:
       - "7233:7233"  # Frontend
       - "7234:7234"  # History
@@ -80,10 +83,9 @@ services:
   # Temporal UI
   temporal-ui:
     image: temporalio/ui:2.21.3
+    entrypoint: ["/docker/start.sh"]
     environment:
-      - TEMPORAL_ADDRESS=temporal-server:7233
-      - TEMPORAL_CORS_ORIGINS=*
-      - TEMPORAL_PERMIT_WRITE_API=true
+      - TEMPORAL_GRPC_ENDPOINT=temporal-server:7233
     ports:
       - "8080:8080"
     depends_on:

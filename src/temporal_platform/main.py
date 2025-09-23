@@ -108,9 +108,7 @@ def start_worker(
         
         logger.info(
             "Starting Temporal worker",
-            task_queue=queue_name,
-            max_concurrent_activities=max_concurrent_activities,
-            max_concurrent_workflows=max_concurrent_workflows
+            task_queue=queue_name
         )
         
         # Create worker with all activities and workflows
@@ -135,9 +133,7 @@ def start_worker(
                 notifications.send_email_notification,
                 notifications.log_audit_event,
                 notifications.update_metrics_dashboard,
-            ],
-            max_concurrent_activities=max_concurrent_activities,
-            max_concurrent_workflows=max_concurrent_workflows
+            ]
         )
         
         logger.info("Worker started successfully")
